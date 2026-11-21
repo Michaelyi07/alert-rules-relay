@@ -1,0 +1,15 @@
+$ alertmanager --version
+  0.28.1
+POST /api/v2/alerts (firing critical) -> HTTP 200
+POST /api/v2/alerts (resolved) -> HTTP 200
+GET /api/v2/alerts -> HTTP 200, active_alerts=0
+received bot payloads:
+  feishu_000.json: FIRING
+  feishu_001.json: RESOLVED
+  wecom_000.json: FIRING
+  wecom_001.json: RESOLVED
+screenshots:
+  critical_feishu.png (45286 bytes)
+  critical_wecom.png (43650 bytes)
+  resolved_feishu.png (50364 bytes)
+  resolved_wecom.png (48836 bytes)

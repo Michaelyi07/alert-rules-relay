@@ -1,0 +1,36 @@
+OS: Windows-10-10.0.19045-SP0
+Python: Python 3.13.14
+
+$ promtool --version
+promtool, version 3.5.0 (branch: HEAD, revision: 8be3a9560fbdd18a94dedec4b747c35178177202)
+  build user:       root@a98875699604
+  build date:       20250714-16:18:19
+  go version:       go1.24.5
+  platform:         windows/amd64
+  tags:             builtinassets
+
+$ promtool check rules alerts/*.yml
+Checking alerts/api.yml
+  SUCCESS: 2 rules found
+
+Checking alerts/cert.yml
+  SUCCESS: 1 rules found
+
+Checking alerts/database.yml
+  SUCCESS: 4 rules found
+
+Checking alerts/host.yml
+  SUCCESS: 4 rules found
+
+Checking alerts/queue.yml
+  SUCCESS: 2 rules found
+
+Checking alerts/redis.yml
+  SUCCESS: 2 rules found
+
+exit_code=0
+
+$ promtool test rules tools/rules_test.yml
+  SUCCESS
+
+exit_code=0

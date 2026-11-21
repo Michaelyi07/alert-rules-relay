@@ -1,0 +1,84 @@
+# promtool unit tests: prove rule FIRING/RESOLVED semantics with real series.
+# Run from repo root: promtool test rules tools/rules_test.yml
+rule_files:
+  - ../alerts/host.yml
+  - ../alerts/database.yml
+  - ../alerts/redis.yml
+  - ../alerts/queue.yml
+  - ../alerts/api.yml
+  - ../alerts/cert.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Host disk critical: 96% for 5m -> fires; back to 50% -> resolves.
+  - interval: 1m
+    input_series:
+      - series: 'node_filesystem_size_bytes{instance="h1",fstype="ext4",mountpoint="/"}'
+        values: '100 100 100 100 100 100 100 100'
+      - series: 'node_filesystem_avail_bytes{instance="h1",fstype="ext4",mountpoint="/"}'
+        values: '50 50 4 4 4 4 4 4 4 4 50'   # 96% used from t=2 (>=95% for 5m -> t=7), back at t=9
+    alert_rule_test:
+      - eval_time: 7m
+        alertname: HostDiskUsageCritical
+        exp_alerts:
+          - exp_labels: {severity: "critical", family: "host", instance: "h1", fstype: "ext4", mountpoint: "/"}
+            exp_annotations:
+              summary: "Host disk usage > 95% (h1)"
+              runbook_url: "https://runbook.example.invalid/ops/host#disk-usage"
+              dashboard_url: "https://grafana.example.invalid/d/host-overview?var-instance=h1"
+      - eval_time: 10m
+        alertname: HostDiskUsageCritical
+        exp_alerts: []
+
+  # node_exporter down for 3m -> fires.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="node_exporter",instance="h1"}'
+        values: '1 0 0 0 0 1'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NodeExporterDown
+        exp_alerts:
+          - exp_labels: {job: "node_exporter", instance: "h1", severity: "critical", family: "host"}
+            exp_annotations:
+              summary: "node_exporter unreachable for 3m (h1)"
+              runbook_url: "https://runbook.example.invalid/ops/host#exporter-down"
+              dashboard_url: "https://grafana.example.invalid/d/host-overview?var-instance=h1"
+      - eval_time: 6m
+        alertname: NodeExporterDown
+        exp_alerts: []
+
+  # Redis queue keys evicted: increase>0 over 5m, queue: prefix only.
+  - interval: 1m
+    input_series:
+      - series: 'redis_evicted_keys_total{instance="r1",key_prefix="queue:"}'
+        values: '0 0 0 0 2 2 2'
+      - series: 'redis_evicted_keys_total{instance="r1",key_prefix="cache:"}'
+        values: '0 0 0 0 100 100 100'   # cache evictions must NOT trigger
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: RedisQueueKeysEvicted
+        exp_alerts:
+          - exp_labels: {instance: "r1", key_prefix: "queue:", severity: "critical", family: "redis"}
+            exp_annotations:
+              summary: "queue: keys evicted in last 5m (r1)"
+              runbook_url: "https://runbook.example.invalid/ops/redis#queue-eviction"
+              dashboard_url: "https://grafana.example.invalid/d/redis-overview?var-instance=r1"
+
+  # API 5xx rate > 2% for 5m; job label preserved after aggregation.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="api",status="200"}'
+        values: '100 200 300 400 500 600 700 800 900 1000'
+      - series: 'http_requests_total{job="api",status="500"}'
+        values: '0 0 5 12 19 26 33 40 47 48'   # 5xx rate ~5/(10+5)=33% > 2%
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: API5xxRateHigh
+        exp_alerts:
+          - exp_labels: {job: "api", severity: "critical", family: "api"}
+            exp_annotations:
+              summary: "5xx error rate > 2% for 5m (job=api)"
+              runbook_url: "https://runbook.example.invalid/ops/api#5xx-rate"
+              dashboard_url: "https://grafana.example.invalid/d/api-overview?var-job=api"

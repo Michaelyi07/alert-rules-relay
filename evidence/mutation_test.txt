@@ -1,0 +1,6 @@
+$ python tools/mutation_test.py
+
+[PASS] PII whitelist widened -> PII key survives the explicit filter: pytest rc=1 (expected rc=1 with failed test)
+[PASS] resolved template broken -> no RESOLVED marker: pytest rc=1 (expected rc=1 with failed test)
+[PASS] dev suppression broken -> dev sends: pytest rc=1 (expected rc=1 with failed test)
+[INFO] restored code pytest rc=0: ...............                                                          [100%]

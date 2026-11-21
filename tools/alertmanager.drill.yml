@@ -1,0 +1,50 @@
+# Drill-only Alertmanager config: IDENTICAL routing/inhibition/send_resolved to
+# alertmanager/alertmanager.yml, but group_wait/repeat_interval are shortened so
+# the acceptance drill finishes in seconds instead of 4 hours. Production values
+# (5m / 4h) remain in the delivered alertmanager/alertmanager.yml.
+global:
+  resolve_timeout: 1m
+
+route:
+  receiver: relay-default
+  group_by: ["alertname", "env", "severity"]
+  group_wait: 1s
+  group_interval: 1s
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - env="dev"
+      receiver: dev-noop
+      continue: false
+    - matchers:
+        - severity="critical"
+        - env=~"test|staging|prod"
+      receiver: relay-critical
+      continue: false
+    - matchers:
+        - severity="warning"
+        - env=~"test|staging|prod"
+      receiver: relay-warning
+      continue: false
+
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: ["family", "instance"]
+
+receivers:
+  - name: relay-critical
+    webhook_configs:
+      - url: "http://127.0.0.1:18081/webhook"
+        send_resolved: true
+  - name: relay-warning
+    webhook_configs:
+      - url: "http://127.0.0.1:18081/webhook"
+        send_resolved: true
+  - name: relay-default
+    webhook_configs:
+      - url: "http://127.0.0.1:18081/webhook"
+        send_resolved: true
+  - name: dev-noop

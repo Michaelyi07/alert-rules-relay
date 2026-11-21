@@ -1,0 +1,7 @@
+# Container entrypoint smoke
+CMD from Dockerfile: uvicorn relay.app:app --host 0.0.0.0 --port 8080
+Build context: repo root (docker-compose context: .)
+
+$ PYTHONPATH=. python -m uvicorn relay.app:app --host 127.0.0.1 --port 18082
+curl /healthz -> {"status":"ok","version":"1.0.0"}
+entrypoint OK (app module loads, healthz responds)

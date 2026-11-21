@@ -1,0 +1,10 @@
+{
+  "channel": "wecom",
+  "path": "/wecom/test-group",
+  "message": {
+    "msgtype": "markdown",
+    "markdown": {
+      "content": "✅ [RESOLVED] HostDiskUsageCritical (test, critical)\n**告警**: HostDiskUsageCritical\n**环境**: test\n**实例**: 10.0.0.7:9100\n**开始时间**: 2026-11-21T10:00:00Z\n**恢复时间**: 2026-11-21T10:00:01Z\n**面板**: [查看面板](https://grafana.example.invalid/d/host-overview?var-instance=10.0.0.7:9100)\n**处置手册**: [Runbook](https://runbook.example.invalid/ops/host#disk-usage)"
+    }
+  }
+}

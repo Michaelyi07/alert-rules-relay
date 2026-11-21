@@ -1,0 +1,64 @@
+# Alertmanager routing — relay receivers are group-bot webhooks exposed by alert-relay.
+# Timing contract: group_wait 5m, group_interval 5m, repeat_interval 4h, send_resolved true.
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: relay-default
+  group_by: ["alertname", "env", "severity"]
+  group_wait: 5m
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    # dev environment is silenced: no notification at all (black hole receiver).
+    - matchers:
+        - env="dev"
+      receiver: dev-noop
+      continue: false
+
+    - matchers:
+        - severity="critical"
+        - env=~"test|staging|prod"
+      receiver: relay-critical
+      continue: false
+
+    - matchers:
+        - severity="warning"
+        - env=~"test|staging|prod"
+      receiver: relay-warning
+      continue: false
+
+inhibit_rules:
+  # critical suppresses warning of the SAME family + instance. `family` is on
+  # every rule; alertname differs between severities so it cannot be the key.
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: ["family", "instance"]
+  # Belt-and-braces: disk critical suppresses disk warning on the same instance
+  # (kept explicit because that is the pair operators see most often).
+  - source_matchers:
+      - alertname="HostDiskUsageCritical"
+    target_matchers:
+      - alertname="HostDiskUsageHigh"
+    equal: ["instance"]
+
+receivers:
+  - name: relay-critical
+    webhook_configs:
+      - url: "http://alert-relay:8080/webhook"
+        send_resolved: true
+        http_config: {}
+  - name: relay-warning
+    webhook_configs:
+      - url: "http://alert-relay:8080/webhook"
+        send_resolved: true
+        http_config: {}
+  - name: relay-default
+    webhook_configs:
+      - url: "http://alert-relay:8080/webhook"
+        send_resolved: true
+        http_config: {}
+  - name: dev-noop
+    # dev sends nothing; receiver with no integrations.

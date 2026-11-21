@@ -1,0 +1,26 @@
+# Queue alerts — application metrics (queue_* labels carried from the metrics ticket)
+# Series consumed: queue_backlog, queue_oldest_task_age_seconds
+groups:
+  - name: queue
+    rules:
+      - alert: QueueBacklogHigh
+        expr: queue_backlog > 1000
+        for: 10m
+        labels:
+          severity: warning
+          family: queue
+        annotations:
+          summary: "queue_backlog > 1000 for 10m (queue={{ $labels.queue }})"
+          runbook_url: "https://runbook.example.invalid/ops/queue#backlog"
+          dashboard_url: "https://grafana.example.invalid/d/queue-overview?var-queue={{ $labels.queue }}"
+
+      - alert: QueueOldestTaskAgeHigh
+        expr: queue_oldest_task_age_seconds > 900
+        for: 5m
+        labels:
+          severity: warning
+          family: queue
+        annotations:
+          summary: "oldest task age > 900s (queue={{ $labels.queue }})"
+          runbook_url: "https://runbook.example.invalid/ops/queue#oldest-age"
+          dashboard_url: "https://grafana.example.invalid/d/queue-overview?var-queue={{ $labels.queue }}"

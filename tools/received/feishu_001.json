@@ -1,0 +1,80 @@
+{
+  "channel": "feishu",
+  "path": "/feishu/test-group",
+  "message": {
+    "msg_type": "interactive",
+    "card": {
+      "config": {
+        "wide_screen_mode": true
+      },
+      "header": {
+        "title": {
+          "tag": "plain_text",
+          "content": "✅ RESOLVED HostDiskUsageCritical"
+        },
+        "template": "green"
+      },
+      "elements": [
+        {
+          "tag": "div",
+          "text": {
+            "tag": "lark_md",
+            "content": "环境 **test** · 级别 **critical**"
+          }
+        },
+        {
+          "tag": "hr"
+        },
+        {
+          "tag": "div",
+          "text": {
+            "tag": "lark_md",
+            "content": "**告警**: HostDiskUsageCritical"
+          }
+        },
+        {
+          "tag": "div",
+          "text": {
+            "tag": "lark_md",
+            "content": "**环境**: test"
+          }
+        },
+        {
+          "tag": "div",
+          "text": {
+            "tag": "lark_md",
+            "content": "**实例**: 10.0.0.7:9100"
+          }
+        },
+        {
+          "tag": "div",
+          "text": {
+            "tag": "lark_md",
+            "content": "**开始时间**: 2026-11-21T10:00:00Z"
+          }
+        },
+        {
+          "tag": "div",
+          "text": {
+            "tag": "lark_md",
+            "content": "**恢复时间**: 2026-11-21T10:00:01Z"
+          }
+        },
+        {
+          "tag": "div",
+          "text": {
+            "tag": "lark_md",
+            "content": "**面板**: [查看面板](https://grafana.example.invalid/d/host-overview?var-instance=10.0.0.7:9100)"
+          }
+        },
+        {
+          "tag": "div",
+          "text": {
+            "tag": "lark_md",
+            "content": "**处置手册**: [Runbook](https://runbook.example.invalid/ops/host#disk-usage)"
+          }
+        }
+      ]
+    }
+  }
+}

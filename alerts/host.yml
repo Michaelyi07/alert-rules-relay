@@ -1,0 +1,48 @@
+# Host alerts — node_exporter series
+# Series consumed: node_filesystem_{size,avail}_bytes, node_memory_{MemTotal,MemAvailable}_bytes, up{job="node_exporter"}
+groups:
+  - name: host
+    rules:
+      - alert: HostDiskUsageHigh
+        expr: 100 * (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint!="/boot"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint!="/boot"}) > 85
+        for: 10m
+        labels:
+          severity: warning
+          family: host
+        annotations:
+          summary: "Host disk usage > 85% for 10m ({{ $labels.instance }})"
+          runbook_url: "https://runbook.example.invalid/ops/host#disk-usage"
+          dashboard_url: "https://grafana.example.invalid/d/host-overview?var-instance={{ $labels.instance }}"
+
+      - alert: HostDiskUsageCritical
+        expr: 100 * (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint!="/boot"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint!="/boot"}) > 95
+        for: 5m
+        labels:
+          severity: critical
+          family: host
+        annotations:
+          summary: "Host disk usage > 95% ({{ $labels.instance }})"
+          runbook_url: "https://runbook.example.invalid/ops/host#disk-usage"
+          dashboard_url: "https://grafana.example.invalid/d/host-overview?var-instance={{ $labels.instance }}"
+
+      - alert: HostMemoryHigh
+        expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 90
+        for: 10m
+        labels:
+          severity: warning
+          family: host
+        annotations:
+          summary: "Host memory usage > 90% for 10m ({{ $labels.instance }})"
+          runbook_url: "https://runbook.example.invalid/ops/host#memory"
+          dashboard_url: "https://grafana.example.invalid/d/host-overview?var-instance={{ $labels.instance }}"
+
+      - alert: NodeExporterDown
+        expr: up{job="node_exporter"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          family: host
+        annotations:
+          summary: "node_exporter unreachable for 3m ({{ $labels.instance }})"
+          runbook_url: "https://runbook.example.invalid/ops/host#exporter-down"
+          dashboard_url: "https://grafana.example.invalid/d/host-overview?var-instance={{ $labels.instance }}"

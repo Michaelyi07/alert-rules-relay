@@ -1,0 +1,30 @@
+# API alerts — application RED metrics (series from the monitoring/metrics ticket)
+# Series consumed: http_requests_total{status=...}, http_request_duration_seconds_bucket{le=...}
+groups:
+  - name: api
+    rules:
+      - alert: API5xxRateHigh
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
+          /
+          sum by (job) (rate(http_requests_total[5m])) > 0.02
+        for: 5m
+        labels:
+          severity: critical
+          family: api
+        annotations:
+          summary: "5xx error rate > 2% for 5m (job={{ $labels.job }})"
+          runbook_url: "https://runbook.example.invalid/ops/api#5xx-rate"
+          dashboard_url: "https://grafana.example.invalid/d/api-overview?var-job={{ $labels.job }}"
+
+      - alert: APIP95LatencyHigh
+        expr: |
+          histogram_quantile(0.95, sum by (le, job) (rate(http_request_duration_seconds_bucket[5m]))) > 2
+        for: 10m
+        labels:
+          severity: warning
+          family: api
+        annotations:
+          summary: "P95 latency > 2s for 10m (job={{ $labels.job }})"
+          runbook_url: "https://runbook.example.invalid/ops/api#p95-latency"
+          dashboard_url: "https://grafana.example.invalid/d/api-overview?var-job={{ $labels.job }}"

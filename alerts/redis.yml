@@ -1,0 +1,28 @@
+# Redis alerts — redis_exporter series
+# Series consumed: redis_memory_used_bytes, redis_memory_max_bytes, redis_evicted_keys_total{key_prefix="queue:"}
+groups:
+  - name: redis
+    rules:
+      - alert: RedisMemoryHigh
+        expr: 100 * redis_memory_used_bytes / redis_memory_max_bytes > 85
+        for: 10m
+        labels:
+          severity: warning
+          family: redis
+        annotations:
+          summary: "Redis memory usage > 85% ({{ $labels.instance }})"
+          runbook_url: "https://runbook.example.invalid/ops/redis#memory"
+          dashboard_url: "https://grafana.example.invalid/d/redis-overview?var-instance={{ $labels.instance }}"
+
+      # evicted_keys rising over 5m, restricted to queue: keys (queue keys must NOT be evicted).
+      # series label `key_prefix="queue:"` is emitted by the app-side exporter; see README integration point.
+      - alert: RedisQueueKeysEvicted
+        expr: increase(redis_evicted_keys_total{key_prefix="queue:"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          family: redis
+        annotations:
+          summary: "queue: keys evicted in last 5m ({{ $labels.instance }})"
+          runbook_url: "https://runbook.example.invalid/ops/redis#queue-eviction"
+          dashboard_url: "https://grafana.example.invalid/d/redis-overview?var-instance={{ $labels.instance }}"

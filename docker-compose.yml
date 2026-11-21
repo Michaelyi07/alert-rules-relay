@@ -1,0 +1,25 @@
+# Optional compose wiring for the relay beside the monitoring stack.
+# Webhook URLs are injected from KMS at runtime; placeholders are NOT real secrets.
+services:
+  alert-relay:
+    build:
+      context: .
+      dockerfile: relay/Dockerfile
+    image: alert-relay:local
+    ports:
+      - "8080:8080"
+    environment:
+      WECOM_WEBHOOK_URL: "${WECOM_WEBHOOK_URL}"
+      FEISHU_WEBHOOK_URL: "${FEISHU_WEBHOOK_URL}"
+      RELAY_HTTP_TIMEOUT: "5"
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    restart: unless-stopped
