@@ -1,0 +1,7 @@
+# Real group-bot webhooks are secrets: local-only, never committed or published.
+tools/.live_webhooks.env
+tools/_amdata/
+tools/_amdata_live/
+.pytest_cache/
+__pycache__/
+*.pyc

@@ -122,11 +122,14 @@ class Handler(BaseHTTPRequestHandler):
         resolved = ("RESOLVED" in json.dumps(message, ensure_ascii=False)
                     or (message.get("card", {}).get("header", {}).get("template") == "green"))
         state = "resolved" if resolved else "critical"
-        shot = os.path.join(SHOTS, f"{state}_{channel}.png")
-        try:
-            render_card_png(shot, channel, message, f"{state.upper()} notification")
-        except Exception as exc:  # screenshot is best-effort; persistence is mandatory
-            print("WARN screenshot failed:", exc)
+        # In LIVE webhook mode the screenshots must come from the real group chat
+        # window. Never render a fabricated PNG that could be mistaken for one.
+        if os.environ.get("MOCK_BOT_NO_SHOT") != "1":
+            shot = os.path.join(SHOTS, f"{state}_{channel}.png")
+            try:
+                render_card_png(shot, channel, message, f"{state.upper()} notification")
+            except Exception as exc:  # screenshot is best-effort; persistence is mandatory
+                print("WARN screenshot failed:", exc)
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()

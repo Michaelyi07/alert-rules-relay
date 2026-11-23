@@ -6,6 +6,7 @@ Webhook URLs are resolved from KMS at call time — never stored in config files
 """
 import json
 import logging
+import os
 import urllib.request
 from typing import List
 
@@ -16,16 +17,27 @@ from .renderers import render_feishu, render_wecom
 log = logging.getLogger("alert-relay.forwarder")
 
 
+def _default_channels() -> List[str]:
+    """Both formats by default; RELAY_CHANNELS narrows the fan-out for a live
+    drill where only some groups have a real webhook. Unknown names are ignored
+    and an empty/invalid value falls back to both (never silently drop alerts).
+    """
+    raw = os.environ.get("RELAY_CHANNELS", "").strip()
+    if not raw:
+        return ["wecom", "feishu"]
+    picked = [c.strip() for c in raw.split(",") if c.strip() in ("wecom", "feishu")]
+    return picked or ["wecom", "feishu"]
+
+
 def choose_channels(event: AlertEvent) -> List[str]:
     if event.env == "dev":
         log.info("env=dev -> suppress notification for %s", event.alertname)
         return []
+    channels = _default_channels()
     if event.env in ("test", "staging", "prod"):
-        # Both bot formats are exercised; in a real deployment you would pick one
-        # per team. Sending to both keeps test-group coverage for the acceptance drill.
-        return ["wecom", "feishu"]
-    log.warning("unknown env %r -> fallback channels wecom+feishu (not dropped)", event.env)
-    return ["wecom", "feishu"]
+        return channels
+    log.warning("unknown env %r -> fallback channels %s (not dropped)", event.env, channels)
+    return channels
 
 
 def build_message(event: AlertEvent, channel: str, settings: Settings) -> dict:
@@ -65,7 +77,9 @@ def forward(payload: WebhookPayload, settings: Settings, kms: KMSProvider) -> di
             try:
                 url = kms.get_webhook(channel)  # KMS may raise on lookup failure
                 message = build_message(event, channel, settings)
-                post_webhook(url, message, settings)
+                status = post_webhook(url, message, settings)
+                # Log the confirmed delivery WITHOUT ever printing the webhook URL.
+                log.info("delivered channel=%s alert=%s http=%s", channel, event.alertname, status)
                 stats["sent"] += 1  # count ONLY confirmed successful POSTs
             except Exception as exc:  # noqa: BLE001 - log and surface in stats
                 stats["errors"] += 1
