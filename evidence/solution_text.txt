@@ -1,7 +1,7 @@
 # Deliverable — 【S2-INFRA-025】Alert rules & WeCom/Feishu group-bot notification relay (round-1 rework)
 
 Public repo: https://github.com/Michaelyi07/alert-rules-relay
-Commit: c8823388b6d9075a43e87957767686651a938bd4 (short c882338, HEAD of main; public, anonymously retrieved & verified via GitHub contents API: 4/4 named files HTTP 200)
+Delivery commit: c8823388b6d9075a43e87957767686651a938bd4 (short c882338; public, anonymously retrieved & verified via GitHub contents API: 4/4 named files HTTP 200). This commit contains all code, evidence and screenshots; later repo commits are doc-only text refinements.
 All content FICTIONAL: env=test, 10.x instances, example.invalid links, no customer name, no PII, no secret. Python 3.13 / FastAPI, stdlib only for HTTP POST (no overseas SDK).
 
 ## What changed in this rework
