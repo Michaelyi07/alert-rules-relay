@@ -1,0 +1,43 @@
+# Deliverable — 【S2-INFRA-025】Alert rules & WeCom/Feishu group-bot notification relay (round-1 rework)
+
+Public repo: https://github.com/Michaelyi07/alert-rules-relay
+Commit: <FILLED_AFTER_PUSH>
+All content FICTIONAL: env=test, 10.x instances, example.invalid links, no customer name, no PII, no secret. Python 3.13 / FastAPI, stdlib only for HTTP POST (no overseas SDK).
+
+## What changed in this rework
+The first delivery used a local mock bot and locally-rendered PNG cards for AC2/AC3. The reviewer correctly rejected these: no real group had received a message. This round replaces them with a REAL group delivery:
+- Added `tools/drill_alertmanager.py --live`: identical real-Alertmanager chain, but the relay POSTs to a REAL group-bot webhook read (at call time, env-only) from a gitignored local file `tools/.live_webhooks.env`; URLs are NEVER printed or written to evidence. Only configured channels are fanned out (`RELAY_CHANNELS`), and the live mode renders NO fabricated PNG.
+- Built a self-only Feishu test group `3195-alert-test`, added a custom group bot, injected its webhook via env, and ran the real drill (evidence `drill_live.log`, URLs redacted). Captured the two real chat-window screenshots now in `evidence/screenshots/`.
+- Removed the four fabricated cards. WeCom format remains covered by the C4 pytest suite (both renderers); the brief accepts either platform for the "group received message" proof.
+
+## Deliverables (all in the public repo at the commit above)
+- alerts/{host,database,redis,queue,api,cert}.yml — 15 rules, 6 families, each with runbook_url
+- alertmanager/alertmanager.yml — routing, inhibition, group_wait 5m / repeat 4h / send_resolved, dev->noop
+- relay/{app,config,forwarder,models,renderers,serializer}.py + Dockerfile + requirements.txt — FastAPI webhook receiver, whitelist serializer, dual renderers, KMS-webhook resolver
+- relay/tests/ — 15 pytest; tools/{drill_alertmanager,mock_group_bot,mutation_test}.py + alertmanager.drill.yml + rules_test.yml
+- THRESHOLDS.md, README.md, evidence/* (real command outputs + the two real group screenshots)
+
+## Acceptance criteria → evidence
+
+C1 — promtool check rules on all 6 files: SUCCESS, 15 rules; promtool test rules: SUCCESS (firing/resolved semantics). Output: evidence/promtool_check.txt (exit_code=0). Thresholds: disk 85/95, memory 90, node_exporter down 3m, connections 80%, replication lag 30s, slow queries 50/5m, backup 26h, Redis memory 85%, queue: prefixed evicted growth, backlog 1000 for 10m, oldest 900s, 5xx 2% for 5m critical, P95 2s for 10m warning, TLS cert 14d. Every rule carries runbook_url.
+
+C2 — REAL Feishu test group `3195-alert-test` received a critical alert. Screenshot evidence/screenshots/critical_feishu.png is a direct capture of the chat window showing: group name, message time 16:30, red FIRING HostDiskUsageCritical card, `环境 test`, severity critical, instance 10.0.0.7:9100, start time, and the panel link `查看面板` (from the rule's dashboard annotation) plus runbook. The message was delivered through the real chain: Alertmanager API v2 -> routing (env=test, severity=critical -> relay-critical) -> relay /webhook -> whitelist serializer -> Feishu interactive renderer -> real webhook POST (HTTP 200, StatusCode 0 success).
+
+C3 — In the same drill, the alert resolved (endsAt in the past) and the REAL group received a green RESOLVED message. Screenshot evidence/screenshots/resolved_feishu.png shows group name, message time 16:30, RESOLVED card, `环境 test`, and `恢复时间 2026-11-21T10:00:01Z`. Drill log evidence/drill_live.log records both POST /api/v2/alerts -> HTTP 200 and final active_alerts=0.
+
+C4 — `python -m pytest relay/tests/ -q`: 15 passed. Covers both bot formats: WeCom markdown (`msgtype=markdown`, 环境/面板/runbook), Feishu interactive card (`msg_type=interactive`, red/green header), truncation with marker, PII stripping (whitelist drops customer/email/secret labels+annotations), dev suppression, empty-KMS and KMS-exception -> error-not-sent. Output: evidence/pytest_and_config.txt. Additionally evidence/mutation_test.txt shows 3 mutations each turned a targeted test RED (anti-fake-green).
+
+## Verification — real runs (verbatim summary; full outputs in evidence/)
+promtool check rules alerts/*.yml -> 6 files, each SUCCESS (4+4+2+2+2+1=15 rules), exit_code=0.
+promtool test rules tools/rules_test.yml -> SUCCESS.
+amtool check-config alertmanager/alertmanager.yml -> SUCCESS (1 global config, 1 route, 2 inhibit rules, 4 receivers).
+python -m pytest relay/tests/ -q -> 15 passed.
+python tools/drill_alertmanager.py --live -> MODE=LIVE real group webhooks; channels (URLs redacted): feishu; firing critical HTTP 200; resolved HTTP 200; active_alerts=0.
+
+## Security & scope
+- Webhook secrets: env/KMS only. Live-drill URL lives in a gitignored local file, is read into the child process env, and never appears in code, evidence, or logs (the drill log shows channel names only).
+- Serializer whitelist: only alertname/env/severity/instance + dashboard_url/runbook_url/summary survive; other labels/annotations (including PII-like) are dropped before rendering.
+- env=dev -> noop (no notification); unknown env/severity -> fallback WITH warning, never silently dropped.
+- In: rule files, routing config, relay service + tests, threshold table, live group screenshots. Out: SMS/phone escalation, full runbook text, third-party costs, real customer data.
+
+Revision: round 1 of max 3, rework items fully addressed in one pass.

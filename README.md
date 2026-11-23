@@ -38,18 +38,28 @@ amtool check-config alertmanager/alertmanager.yml
 # Anti-fake-green proof (mutate impl -> targeted tests must go RED)
 python tools/mutation_test.py
 
-# FULL end-to-end notification drill (C2/C3): real Alertmanager -> relay -> bot
+# MOCK end-to-end drill (technical proof): real Alertmanager -> relay -> LOCAL mock bot
 export AM_BIN=<path to alertmanager.exe>   # Windows: set AM_BIN=<path>
 python tools/drill_alertmanager.py
-#   -> evidence/screenshots/{critical,resolved}_{wecom,feishu}.png
-#   -> tools/received/*.json   (exact webhook payloads received)
+#   -> tools/received/*.json   (exact webhook payloads received by mock bot)
 #   -> evidence/drill.log
+# NOTE: mock mode renders NO screenshots; locally-drawn cards are not group evidence.
+
+# LIVE drill (C2/C3 group evidence): real Alertmanager -> relay -> REAL group webhook
+# 1) copy tools/.live_webhooks.env.example -> tools/.live_webhooks.env (gitignored)
+# 2) fill FEISHU_WEBHOOK_URL and/or WECOM_WEBHOOK_URL with YOUR OWN test-group bot
+# 3) run; then capture the real group chat window into evidence/screenshots/
+python tools/drill_alertmanager.py --live
+#   -> evidence/drill_live.log   (channels shown by NAME only; URLs never printed)
+#   -> screenshots are captured by the operator FROM THE REAL GROUP CHAT WINDOW
 ```
 
 ## Configuration (KMS, env-only)
 
-Webhook URLs are **never** stored in a file. The deployment reads them from KMS
-and exports:
+Production webhook URLs are **never** stored in a file: the deployment reads
+them from KMS and exports them. For the LIVE drill only, real test-group URLs are
+read from the gitignored `tools/.live_webhooks.env` into the relay child process
+env; they are never printed, logged, or committed. See `drill_alertmanager.py`:
 
 - `WECOM_WEBHOOK_URL` — WeCom group-bot webhook
 - `FEISHU_WEBHOOK_URL` — Feishu group-bot webhook
@@ -76,4 +86,6 @@ inhibits disk warning explicitly. dev → noop receiver.
 
 Metrics that may differ in the target stack are isolated to rule expressions in
 `alerts/` — see THRESHOLDS.md §Integration points. Webhook delivery is via real
-group-bot HTTP endpoints; the receiver in `tools/` is a local mock for the drill.
+group-bot HTTP endpoints. `tools/mock_group_bot.py` is a LOCAL receiver used only
+by the mock drill; the LIVE drill (`--live`) posts to real group bots and renders
+no screenshots (those come from the actual chat window).

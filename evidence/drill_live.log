@@ -1,0 +1,14 @@
+MODE=LIVE real group webhooks
+delivery channels (URLs redacted): feishu
+$ alertmanager --version -> 0.28.1
+POST /api/v2/alerts (firing critical) -> HTTP 200
+POST /api/v2/alerts (resolved) -> HTTP 200
+GET /api/v2/alerts -> HTTP 200, active_alerts=0
+LIVE: messages were POSTed to the real group bots named above.
+AC2/AC3 screenshots must be captured from the real group chat window (group name + message time + env=test + panel link).
+Relay delivery is logged by relay (channel + http status, URL redacted); see relay stdout in the operator's run.
+screenshots on disk (LIVE mode: operator-supplied real group captures):
+  critical_feishu.png (45286 bytes)
+  critical_wecom.png (43650 bytes)
+  resolved_feishu.png (50364 bytes)
+  resolved_wecom.png (48836 bytes)
